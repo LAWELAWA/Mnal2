@@ -1,0 +1,1554 @@
+Faceless hub being raped by flyx
+local Play = game:GetService('Players')
+local TweenService = game:GetService('TweenService')
+local GuiService = game:GetService('GuiService')
+local RunService = game:GetService('RunService')
+local UserInputService = game:GetService('UserInputService')
+local Workspace = game:GetService('Workspace')
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
+local TeleportService = game:GetService('TeleportService')
+local player = Players.LocalPlayer
+local Player = player
+local playerGui = player:WaitForChild('PlayerGui')
+local camera = Workspace.CurrentCamera
+-- Config Saving
+local CONFIG = "FacelessHub_Config.json"
+
+
+local ToggleStates = {}
+
+
+if isfile and readfile and isfile(CONFIG) then
+    pcall(function()
+        ToggleStates = HttpService:JSONDecode(readfile(CONFIG))
+    end)
+end
+
+
+local function save()
+    if writefile then
+        pcall(function()
+            writefile(CONFIG, HttpService:JSONEncode(ToggleStates))
+        end)
+    end
+end
+-- Device detection
+local screenSize = camera.ViewportSize
+local deviceType
+if screenSize.X <= 900 then
+    deviceType = 'Mobile'
+elseif screenSize.X <= 1400 then
+    deviceType = 'iPad'
+else
+    deviceType = 'PC'
+end
+local frameSizes = {
+    Mobile = UDim2.new(0, 400, 0, 260),
+    iPad = UDim2.new(0, 460, 0, 280),
+    PC = UDim2.new(0, 520, 0, 300),
+}
+local frameSize = frameSizes[deviceType] or frameSizes.PC
+local framePos =
+    UDim2.new(0.5, -frameSize.X.Offset / 2, 0.5, -frameSize.Y.Offset / 2)
+local COLOR_BG = Color3.fromHex("#0a0014")         -- Background stays dark
+local COLOR_PANEL_BG = Color3.fromHex("#120020")   -- Panel stays slightly lighter dark
+
+local COLOR_TAB_ACTIVE = Color3.fromHex("#BF00FF")    -- Electric Violet for active tab
+local COLOR_TAB_INACTIVE = Color3.fromHex("#FFFFFF")
+
+local COLOR_TOGGLE_OFF = Color3.fromHex("#464646")
+local COLOR_TEXT = Color3.fromHex("#FFFFFF")
+-- ScreenGui
+local screenGui = Instance.new('ScreenGui')
+screenGui.Name = 'Abyss_Hub'
+screenGui.ResetOnSpawn = false
+screenGui.DisplayOrder = 1000
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = playerGui
+-- Main Frame
+local frame = Instance.new('Frame')
+frame.Name = 'AbyssHubMain'
+frame.Size = frameSize
+frame.Position = framePos
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
+frame.BackgroundColor3 = COLOR_BG
+frame.BackgroundTransparency = 0.25
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+local mainCorner = Instance.new('UICorner')
+mainCorner.CornerRadius = UDim.new(0, 16)
+mainCorner.Parent = frame
+-- Outline animation
+local outline = Instance.new('UIStroke')
+outline.Parent = frame
+outline.Thickness = 4
+outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+outline.LineJoinMode = Enum.LineJoinMode.Round
+outline.Color = COLOR_TAB_ACTIVE
+task.spawn(function()
+    local info =
+        TweenInfo.new(0.9, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+    while true do
+        TweenService:Create(outline, info, { Color = Color3.fromRGB(0, 0, 0) })
+            :Play()
+        task.wait(0.9)
+        TweenService:Create(outline, info, { Color = COLOR_TAB_ACTIVE }):Play()
+        task.wait(0.9)
+    end
+end)
+-- Header
+local header = Instance.new('TextLabel')
+header.Parent = frame
+header.Size = UDim2.new(0, 120, 0, 30)
+header.Position = UDim2.new(0, 10, 0, 8)
+header.BackgroundTransparency = 1
+header.Font = Enum.Font.GothamBold
+header.TextSize = 15
+header.Text = 'Faceless Hub'
+header.TextColor3 = COLOR_TAB_ACTIVE
+-- Tabs
+local tabNames = { 'Main', 'ESP', 'Misc', 'Credits' }
+local tabButtons = {}
+local frameHeight = frame.Size.Y.Offset
+local tabHeight, tabGap = 35, 10
+local totalTabsHeight = (#tabNames * tabHeight) + ((#tabNames - 1) * tabGap)
+local startY = (frameHeight - totalTabsHeight) / 2
+for i, name in ipairs(tabNames) do
+    local btn = Instance.new('TextButton')
+    btn.Name = name .. 'Tab'
+    btn.Parent = frame
+    btn.Size = UDim2.new(0, 92, 0, tabHeight)
+    btn.Position = UDim2.new(0, 19, 0, startY + (i - 1) * (tabHeight + tabGap))
+    btn.BackgroundColor3 = COLOR_PANEL_BG
+    btn.AutoButtonColor = false
+    btn.Font = Enum.Font.GothamBold
+    btn.Text = name
+    btn.TextSize = 18
+    btn.TextColor3 = COLOR_TAB_INACTIVE
+    local corner = Instance.new('UICorner')
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = btn
+    local stroke = Instance.new('UIStroke')
+    stroke.Parent = btn
+    stroke.Thickness = 2
+    stroke.Color = COLOR_TAB_INACTIVE
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.LineJoinMode = Enum.LineJoinMode.Round
+    task.spawn(function()
+        local info = TweenInfo.new(0.9, Enum.EasingStyle.Linear)
+        while true do
+            TweenService
+                :Create(stroke, info, { Color = Color3.fromRGB(0, 0, 0) })
+                :Play()
+            task.wait(0.9)
+            TweenService:Create(stroke, info, { Color = COLOR_TAB_ACTIVE })
+                :Play()
+            task.wait(0.9)
+        end
+    end)
+    tabButtons[name] = btn
+end
+-- Right Content Area
+local contentArea = Instance.new('Frame')
+contentArea.Parent = frame
+contentArea.Size = UDim2.new(1, -140, 1, -20)
+contentArea.Position = UDim2.new(0, 130, 0, 10)
+contentArea.BackgroundColor3 = COLOR_PANEL_BG
+contentArea.BackgroundTransparency = 0.35 -- slightly darker panel
+contentArea.BorderSizePixel = 0
+local contentCorner = Instance.new('UICorner')
+contentCorner.CornerRadius = UDim.new(0, 12)
+contentCorner.Parent = contentArea
+local pageTitle = Instance.new('TextLabel')
+pageTitle.Parent = contentArea
+pageTitle.Size = UDim2.new(1, 0, 0, 36)
+pageTitle.Position = UDim2.new(0, 0, 0, 6)
+pageTitle.BackgroundTransparency = 1
+pageTitle.Font = Enum.Font.GothamBold
+pageTitle.TextSize = 20
+pageTitle.TextColor3 = COLOR_TAB_ACTIVE
+pageTitle.Text = 'Main'
+-- Scroll
+local scroll = Instance.new('ScrollingFrame')
+scroll.Parent = contentArea
+scroll.Position = UDim2.new(0, 10, 0, 46)
+scroll.Size = UDim2.new(1, -20, 1, -56)
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scroll.ScrollBarThickness = 6
+scroll.ScrollBarImageColor3 = COLOR_TAB_ACTIVE
+scroll.BackgroundTransparency = 1
+local listLayout = Instance.new('UIListLayout')
+listLayout.Parent = scroll
+listLayout.Padding = UDim.new(0, 8)
+listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+local padding = Instance.new('UIPadding')
+padding.Parent = scroll
+padding.PaddingTop = UDim.new(0, 6)
+listLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
+    scroll.CanvasSize =
+        UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 12)
+end)
+-- Minimize Button (Circle AH)
+local minimizeButton = Instance.new('TextButton')
+minimizeButton.Parent = screenGui
+minimizeButton.Size = UDim2.new(0, 50, 0, 50)
+minimizeButton.Position = UDim2.new(1, -60, 0, 10)
+minimizeButton.BackgroundColor3 = COLOR_BG
+minimizeButton.BackgroundTransparency = 0.25
+minimizeButton.Text = 'FH'
+minimizeButton.Font = Enum.Font.GothamBold
+minimizeButton.TextSize = 20
+minimizeButton.TextColor3 = COLOR_TAB_ACTIVE
+local minCorner = Instance.new('UICorner')
+minCorner.CornerRadius = UDim.new(1, 0)
+minCorner.Parent = minimizeButton
+local minStroke = Instance.new('UIStroke')
+minStroke.Parent = minimizeButton
+minStroke.Thickness = 1
+minStroke.Color = COLOR_TAB_ACTIVE
+task.spawn(function()
+    local info =
+        TweenInfo.new(0.9, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+    while true do
+        TweenService
+            :Create(minStroke, info, { Color = Color3.fromRGB(0, 0, 0) })
+            :Play()
+        display.wait(0.9)
+        TweenService:Create(minStroke, info, { Color = COLOR_TAB_ACTIVE })
+            :Play()
+        task.wait(0.9)
+    end
+end)
+minimizeButton.Visible = true
+local guiVisible = true
+frame.Visible = guiVisible
+minimizeButton.MouseButton1Click:Connect(function()
+    guiVisible = not guiVisible
+    frame.Visible = guiVisible
+end)
+local dragging
+local dragInput
+local dragStart
+local startPos
+local function update(input)
+    local delta = input.Position - dragStart
+    minimizeButton.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
+end
+minimizeButton.InputBegan:Connect(function(input)
+    if
+        input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch
+    then
+        dragging = true
+        dragStart = input.Position
+        startPos = minimizeButton.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+minimizeButton.InputChanged:Connect(function(input)
+    if
+        input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch
+    then
+        dragInput = input
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input == dragInput) then
+        update(input)
+    end
+end)
+-- Toggle visuals
+local ToggleStates = {}
+local function createToggle(labelText, callback)
+    local container = Instance.new('Frame')
+    container.Size = UDim2.new(0.95, 0, 0, 46)
+    container.BackgroundTransparency = 1
+    local lbl = Instance.new('TextLabel')
+    lbl.Parent = container
+    lbl.Size = UDim2.new(1, -70, 1, 0)
+    lbl.Position = UDim2.new(0, 10, 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = labelText
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 18
+    lbl.TextColor3 = COLOR_TEXT
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    local toggle = Instance.new('Frame')
+    toggle.Parent = container
+    toggle.Size = UDim2.new(0, 64, 0, 30)
+    toggle.AnchorPoint = Vector2.new(1, 0.5)
+    toggle.Position = UDim2.new(1, -10, 0.5, 0)
+    toggle.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    toggle.BorderSizePixel = 0
+    local tcorner = Instance.new('UICorner')
+    tcorner.CornerRadius = UDim.new(0, 16)
+    tcorner.Parent = toggle
+    local knob = Instance.new('Frame')
+    knob.Parent = toggle
+    knob.Size = UDim2.new(0, 26, 0, 26)
+    knob.Position = UDim2.new(0, 3, 0.5, -13)
+    knob.BackgroundColor3 = COLOR_TOGGLE_OFF
+    knob.BorderSizePixel = 0
+    local kcorner = Instance.new('UICorner')
+    kcorner.CornerRadius = UDim.new(0, 13)
+    kcorner.Parent = knob
+    ToggleStates[labelText] = ToggleStates[labelText] or false
+    local state = ToggleStates[labelText]
+    knob.BackgroundColor3 = state and COLOR_TAB_ACTIVE or COLOR_TOGGLE_OFF
+    knob.Position = state and UDim2.new(1, -29, 0.5, -13)
+        or UDim2.new(0, 3, 0.5, -13)
+    local function toggleAnim()
+        local state = not ToggleStates[labelText]
+        ToggleStates[labelText] = state
+        local targetColor = state and COLOR_TAB_ACTIVE or COLOR_TOGGLE_OFF
+        local targetPos = state and UDim2.new(1, -29, 0.5, -13)
+            or UDim2.new(0, 3, 0.5, -13)
+        local info =
+            TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        TweenService:Create(
+            knob,
+            info,
+            { BackgroundColor3 = targetColor, Position = targetPos }
+        ):Play()
+        if callback then
+            pcall(callback, state)
+        end
+    end
+    container.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            local startPos = input.Position
+            local hasMoved = false
+
+            local conn
+            conn = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    conn:Disconnect()
+                    if not hasMoved and (input.Position - startPos).Magnitude < 15 then
+                        toggleAnim()
+                    end
+                else
+                    if (input.Position - startPos).Magnitude > 15 then
+                        hasMoved = true
+                    end
+                end
+            end)
+        end
+    end)
+
+    return container
+end
+-- ESP Best Brainrot logic
+PRIVATE 
+-- Implementations for toggles
+local infJumpConnection = nil
+local function toggleInfJump(state)
+    if infJumpConnection then
+        infJumpConnection:Disconnect()
+        infJumpConnection = nil
+    end
+    if state then
+        infJumpConnection = UserInputService.JumpRequest:Connect(function()
+            local char = player.Character
+            if char and char:FindFirstChild('HumanoidRootPart') then
+                char.HumanoidRootPart.Velocity = Vector3.new(
+                    char.HumanoidRootPart.Velocity.X,
+                    50,
+                    char.HumanoidRootPart.Velocity.Z
+                )
+            end
+        end)
+    end
+end
+local slowFallConn = nil
+local function toggleSlowFalling(state)
+    if slowFallConn then
+        slowFallConn:Disconnect()
+        slowFallConn = nil
+    end
+    if state then
+        slowFallConn = RunService.RenderStepped:Connect(function()
+            local char = player.Character
+            if char then
+                local hrp = char:FindFirstChild('HumanoidRootPart')
+                if hrp and hrp.Velocity.Y < 0 then
+                    hrp.Velocity =
+                        Vector3.new(hrp.Velocity.X, -10, hrp.Velocity.Z) -- Very slow fall (-10 studs/sec)
+                end
+            end
+        end)
+    end
+end
+local jumpBoostConnection = nil
+local jumpBoostCanBoost = true
+local function toggleJumpBoost(state)
+    if jumpBoostConnection then
+        jumpBoostConnection:Disconnect()
+        jumpBoostConnection = nil
+    end
+    if state then
+        local function setup()
+            local char = player.Character
+            if not char then
+                return
+            end
+            local humanoid = char:FindFirstChildOfClass('Humanoid')
+            local rootPart = char:FindFirstChild('HumanoidRootPart')
+            if not humanoid or not rootPart then
+                return
+            end
+            jumpBoostConnection = humanoid.StateChanged:Connect(
+                function(_, newState)
+                    if
+                        newState == Enum.HumanoidStateType.Jumping
+                        and jumpBoostCanBoost
+                    then
+                        local currentVel = rootPart.AssemblyLinearVelocity
+                        rootPart.AssemblyLinearVelocity =
+                            Vector3.new(currentVel.X, 100, currentVel.Z)
+                        jumpBoostCanBoost = false
+                    elseif newState == Enum.HumanoidStateType.Landed then
+                        jumpBoostCanBoost = true
+                    end
+                end
+            )
+        end
+        setup()
+        player.CharacterAdded:Connect(setup)
+    end
+end
+-- Aimbot logic
+ IM removing this part
+
+        local function getNearestPlayer()
+            local char = player.Character
+            if not char or not char:FindFirstChild('HumanoidRootPart') then
+                return nil, math.huge
+            end
+            local myPos = char.HumanoidRootPart.Position
+            local closest, closestDist = nil, math.huge
+            for _, plr in pairs(Players:GetPlayers()) do
+                if
+                    plr ~= player
+                    and plr.Character
+                    and plr.Character:FindFirstChild('HumanoidRootPart')
+                then
+                    local d = (myPos - plr.Character.HumanoidRootPart.Position).Magnitude
+                    if d < closestDist then
+                        closest, closestDist = plr, d
+                    end
+                end
+            end
+            return closest, closestDist
+        end
+
+        local function chooseHitPart(char)
+            for _, name in ipairs({
+                'Head',
+                'UpperTorso',
+                'LowerTorso',
+                'HumanoidRootPart',
+            }) do
+                local part = char:FindFirstChild(name)
+                if part and part:IsA('BasePart') then
+                    return part
+                end
+            end
+            return char:FindFirstChildWhichIsA('BasePart')
+        end
+
+        local lastFire = 0
+        aimbotConn = RunService.Heartbeat:Connect(function()
+            if
+                not aimbotState.aimbot
+                or not aimbotState.autoEnabled
+                or not UseItemEvent
+            then
+                return
+            end
+            if tick() - lastFire < COOLDOWN then
+                return
+            end
+
+            local char = player.Character
+            if not char or not char:FindFirstChild('HumanoidRootPart') then
+                return
+            end
+            local tool = char:FindFirstChildOfClass('Tool')
+            if not tool then
+                return
+            end
+
+            local targetPlayer, dist = getNearestPlayer()
+            if not targetPlayer or dist > MAX_DISTANCE then
+                return
+            end
+
+            local hitPart = chooseHitPart(targetPlayer.Character)
+            if not hitPart then
+                return
+            end
+            local hitPos = hitPart.Position
+
+            local raycastParams = RaycastParams.new()
+            raycastParams.FilterDescendantsInstances = { player.Character }
+            raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+            local result = workspace:Raycast(
+                char.HumanoidRootPart.Position,
+                (hitPos - char.HumanoidRootPart.Position).Unit * dist,
+                raycastParams
+            )
+            if result and result.Instance and result.Instance.CanCollide then
+                result.Instance.CanCollide = false
+                task.delay(OBSTACLE_DISABLE_TIME, function()
+                    if result.Instance and result.Instance.Parent then
+                        result.Instance.CanCollide = true
+                    end
+                end)
+            end
+
+            pcall(function()
+                UseItemEvent:FireServer(hitPos, hitPart)
+            end)
+
+            lastFire = tick()
+        end)
+    end
+end
+-- Auto Destroy Sentry logic
+local sentryTeleportConn = nil
+local sentryEquipConn = nil
+local function toggleAutoDestroySentry(state)
+    if sentryTeleportConn then
+        sentryTeleportConn:Disconnect()
+        sentryTeleportConn = nil
+    end
+    if sentryEquipConn then
+        sentryEquipConn:Disconnect()
+        sentryEquipConn = nil
+    end
+    if state then
+        local function teleportSentries()
+            local char = player.Character
+            local hrp = char and char:FindFirstChild('HumanoidRootPart')
+            if not char or not hrp then
+                return
+            end
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if obj:IsA('Part') and obj.Name:lower():find('sentry') then
+                    local frontPos = hrp.CFrame * CFrame.new(0, 0, -4)
+                    obj.CFrame = CFrame.new(frontPos.Position)
+                    obj.CanCollide = false
+                end
+            end
+        end
+        local function equipBat()
+            local char = player.Character
+            if not char then
+                return
+            end
+            local backpack = player:FindFirstChild('Backpack')
+            if not backpack then
+                return
+            end
+            local tool = backpack:FindFirstChild('Bat')
+                or char:FindFirstChild('Bat')
+            if tool then
+                -- Equip tool
+                if not char:FindFirstChild(tool.Name) then
+                    tool.Parent = char
+                end
+                -- Activate tool
+                if tool:IsA('Tool') then
+                    pcall(function()
+                        tool:Activate()
+                    end)
+                end
+            end
+        end
+        sentryEquipConn = RunService.RenderStepped:Connect(equipBat)
+        sentryTeleportConn = RunService.Heartbeat:Connect(teleportSentries) -- More efficient than while loop
+        -- Handle CharacterAdded
+        local charAddedConn
+        charAddedConn = player.CharacterAdded:Connect(function(newChar)
+            local hrp = newChar:WaitForChild('HumanoidRootPart')
+        end)
+    end
+end
+-- Speed Boost Steal logic
+local speedBoostConn = nil
+local function toggleSpeedBoostSteal(state)
+    if speedBoostConn then
+        speedBoostConn:Disconnect()
+        speedBoostConn = nil
+    end
+    if state then
+        local speedValue = 27 -- Adjusted from 30 to 27
+        speedBoostConn = RunService.RenderStepped:Connect(function()
+            local char = player.Character
+            local humanoid = char and char:FindFirstChildOfClass('Humanoid')
+            local hrp = char and char:FindFirstChild('HumanoidRootPart')
+            if humanoid and hrp and humanoid.MoveDirection.Magnitude > 0 then
+                hrp.AssemblyLinearVelocity = humanoid.MoveDirection.Unit
+                        * speedValue
+                    + Vector3.new(0, hrp.AssemblyLinearVelocity.Y, 0)
+            end
+        end)
+        -- Handle CharacterAdded
+        local charAddedConn
+        charAddedConn = player.CharacterAdded:Connect(function(newChar)
+            local humanoid = newChar:WaitForChild('Humanoid')
+            local humanoidRootPart = newChar:WaitForChild('HumanoidRootPart')
+        end)
+    end
+end
+-- ESP Player logic
+local playerESP = {
+    Enabled = false,
+    Highlights = {},
+    NameTags = {},
+}
+local function togglePlayerESP(state)
+    playerESP.Enabled = state
+    if not state then
+        for character, _ in pairs(playerESP.Highlights) do
+            playerESP:RemoveForCharacter(character)
+        end
+        playerESP.Highlights = {}
+        playerESP.NameTags = {}
+        return
+    end
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= player and plr.Character then
+            playerESP:CreateHighlightForCharacter(plr.Character)
+            playerESP:CreateNameTag(plr, plr.Character)
+        end
+    end
+    -- Connect to new players
+    local playerAddedConn = Players.PlayerAdded:Connect(function(plr)
+        if playerESP.Enabled then
+            plr.CharacterAdded:Connect(function(char)
+                playerESP:CreateHighlightForCharacter(char)
+                playerESP:CreateNameTag(plr, char)
+            end)
+        end
+    end)
+    local playerRemovingConn = Players.PlayerRemoving:Connect(function(plr)
+        if plr.Character then
+            playerESP:RemoveForCharacter(plr.Character)
+        end
+    end)
+    -- Periodic update
+    local updateConn = RunService.Heartbeat:Connect(function()
+        if playerESP.Enabled then
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= player and plr.Character then
+                    playerESP:CreateHighlightForCharacter(plr.Character)
+                    playerESP:CreateNameTag(plr, plr.Character)
+                end
+            end
+        end
+    end)
+    -- Clean up when off
+    if not state then
+        playerAddedConn:Disconnect()
+        playerRemovingConn:Disconnect()
+        updateConn:Disconnect()
+    end
+end
+function playerESP:CreateHighlightForCharacter(character)
+    if not character or not character:IsA('Model') then
+        return
+    end
+    if self.Highlights[character] then
+        return
+    end
+    local highlight = Instance.new('Highlight')
+    highlight.Name = 'ESPHighlight'
+    highlight.Adornee = character
+    highlight.FillColor = Color3.fromRGB(255, 0, 0)
+    highlight.OutlineColor = Color3.fromHex("#00f7ff")
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.Parent = character
+    self.Highlights[character] = highlight
+end
+function playerESP:CreateNameTag(plr, character)
+    if not plr or not character then
+        return
+    end
+    if self.NameTags[character] then
+        return
+    end
+    local head = character:FindFirstChild('Head')
+    if not head then
+        return
+    end
+    local billboard = Instance.new('BillboardGui')
+    billboard.Name = 'ESPNameTag'
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = head
+    local textLabel = Instance.new('TextLabel')
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = plr.Name
+    textLabel.TextColor3 = Color3.fromHex("#00f7ff")
+    textLabel.TextStrokeTransparency = 0.5
+    textLabel.TextScaled = true
+    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.Parent = billboard
+    self.NameTags[character] = billboard
+end
+function playerESP:RemoveForCharacter(character)
+    if self.Highlights[character] then
+        self.Highlights[character]:Destroy()
+        self.Highlights[character] = nil
+    end
+    if self.NameTags[character] then
+        self.NameTags[character]:Destroy()
+        self.NameTags[character] = nil
+    end
+end
+-- ESP Base Timer logic
+local baseTimerConnection = nil
+local function toggleBaseTimerESP(state)
+    if baseTimerConnection then
+        baseTimerConnection:Disconnect()
+        baseTimerConnection = nil
+        for _, plot in
+            pairs(
+                Workspace:FindFirstChild('Plots')
+                        and Workspace.Plots:GetChildren()
+                    or {}
+            )
+        do
+            local purchases = plot:FindFirstChild('Purchases')
+            if purchases then
+                for _, child in pairs(purchases:GetChildren()) do
+                    local main = child:FindFirstChild('Main')
+                    if main then
+                        local gui = main:FindFirstChild('GlobalTimerGui')
+                        if gui then
+                            gui:Destroy()
+                        end
+                    end
+                end
+            end
+        end
+        return
+    end
+    if state then
+        local Plots = Workspace:FindFirstChild('Plots')
+        local lastValues = {}
+        local lastChange = {}
+        local function getOrCreateTimerGui(main)
+            if not main then
+                return nil
+            end
+            local existing = main:FindFirstChild('GlobalTimerGui')
+            if existing and existing:FindFirstChild('Label') then
+                return existing.Label
+            end
+            local gui = Instance.new('BillboardGui')
+            gui.Name = 'GlobalTimerGui'
+            gui.Size = UDim2.new(0, 120, 0, 60)
+            gui.StudsOffset = Vector3.new(0, 5, 0)
+            gui.AlwaysOnTop = true
+            gui.Parent = main
+            local lbl = Instance.new('TextLabel')
+            lbl.Name = 'Label'
+            lbl.Size = UDim2.new(1, 0, 1, 0)
+            lbl.BackgroundTransparency = 1
+            lbl.TextColor3 = Color3.fromHex("#00b4cc") -- ciemnoczerwony
+            lbl.Font = Enum.Font.GothamBold
+            lbl.TextScaled = true
+            lbl.Text = '0'
+            lbl.Parent = gui
+            return lbl
+        end
+        local function findLowestFloor(purchases)
+            local lowestFloor, lowestY = nil, math.huge
+            for _, child in pairs(purchases:GetChildren()) do
+                local main = child:FindFirstChild('Main')
+                if main then
+                    local lowestPart = nil
+                    if main:IsA('Model') then
+                        for _, part in pairs(main:GetDescendants()) do
+                            if
+                                part:IsA('BasePart')
+                                and (
+                                    not lowestPart
+                                    or part.Position.Y
+                                        < lowestPart.Position.Y
+                                )
+                            then
+                                lowestPart = part
+                            end
+                        end
+                    elseif main:IsA('BasePart') then
+                        lowestPart = main
+                    end
+                    if lowestPart and lowestPart.Position.Y < lowestY then
+                        lowestY = lowestPart.Position.Y
+                        lowestFloor = child
+                    end
+                end
+            end
+            return lowestFloor
+        end
+        baseTimerConnection = RunService.RenderStepped:Connect(function()
+            if not Plots then
+                Plots = Workspace:FindFirstChild('Plots')
+                if not Plots then
+                    return
+                end
+            end
+            local now = tick()
+            for _, plot in pairs(Plots:GetChildren()) do
+                local purchases = plot:FindFirstChild('Purchases')
+                if purchases then
+                    local lowestFloor = findLowestFloor(purchases)
+                    if lowestFloor then
+                        local main = lowestFloor:FindFirstChild('Main')
+                        if main then
+                            local remainingTime
+                            for _, obj in pairs(main:GetDescendants()) do
+                                if
+                                    obj:IsA('TextLabel')
+                                    and obj.Name == 'RemainingTime'
+                                then
+                                    remainingTime = obj
+                                    break
+                                end
+                            end
+                            local timerLabel = getOrCreateTimerGui(main)
+                            if remainingTime then
+                                local currentText = remainingTime.Text or '0'
+                                local key = plot.Name
+                                -- wykrywanie zmiany czasu
+                                if lastValues[key] ~= currentText then
+                                    lastValues[key] = currentText
+                                    lastChange[key] = now
+                                end
+                                -- warunki zmiany tekstu
+                                local numeric = tonumber(currentText)
+                                local timeSinceChange = now
+                                    - (lastChange[key] or 0)
+                                if numeric and numeric <= 0 then
+                                    timerLabel.Text = 'Unlocked'
+                                    timerLabel.TextColor3 =
+                                        Color3.fromRGB(0, 255, 0)
+                                elseif timeSinceChange > 1 then
+                                    -- czas siÄ nie zmienia przez 1 sekundÄ â uznaj za unlocked
+                                    timerLabel.Text = 'Unlocked'
+                                    timerLabel.TextColor3 =
+                                        Color3.fromRGB(0, 255, 0)
+                                else
+                                    -- czas siÄ zmienia normalnie
+                                    timerLabel.Text = currentText
+                                    timerLabel.TextColor3 =
+                                        Color3.fromRGB(220, 60, 60)
+                                end
+                            else
+                                timerLabel.Text = 'Unlocked'
+                                timerLabel.TextColor3 =
+                                    Color3.fromRGB(0, 255, 0)
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end
+-- Updated ESP Best Brainrot logic
+Private
+-- X-Ray Base logic
+local xrayConnection = nil
+local originalTrans = {}
+local function toggleXRay(state)
+    if xrayConnection then
+        xrayConnection:Disconnect()
+        xrayConnection = nil
+    end
+    for obj, trans in pairs(originalTrans) do
+        if obj and obj.Parent then
+            pcall(function()
+                obj.Transparency = trans
+            end)
+        end
+    end
+    originalTrans = {}
+    if state then
+        xrayConnection = RunService.Heartbeat:Connect(function()
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                if
+                    obj:IsA('BasePart')
+                    and obj.Parent ~= camera
+                    and obj.Parent ~= player.Character
+                then
+                    if not originalTrans[obj] then
+                        originalTrans[obj] = obj.Transparency
+                    end
+                    if
+                        obj.Parent:FindFirstChild('Humanoid')
+                        and obj.Parent ~= player.Character
+                    then
+                        obj.Transparency = 0.3
+                    elseif
+                        obj.Name:lower():find('wall')
+                        or obj.Name:lower():find('base')
+                        or obj.Name:lower():find('plot')
+                    then
+                        obj.Transparency = 0.7
+                    end
+                end
+            end
+        end)
+    end
+end
+-- Invisible logic
+❌❌❌❌❌❌
+-- Steal Floor logic
+local platform = nil
+local followConn = nil
+local stealFloorHRP = nil
+local function toggleStealFloor(state)
+    if state then
+        local char = player.Character or player.CharacterAdded:Wait()
+        stealFloorHRP = char:FindFirstChild('HumanoidRootPart')
+        platform = Instance.new('Part')
+        platform.Size = Vector3.new(5, 0.6, 5)
+        platform.Anchored = true
+        platform.CanCollide = true
+        platform.Material = Enum.Material.Metal
+        platform.Color = Color3.fromHex("#00f7ff")
+        platform.Name = 'LiftPlatform'
+        platform.Parent = Workspace
+        followConn = RunService.Heartbeat:Connect(function()
+            if platform and stealFloorHRP then
+                local targetPos = Vector3.new(
+                    stealFloorHRP.Position.X,
+                    stealFloorHRP.Position.Y - 2.5,
+                    stealFloorHRP.Position.Z
+                )
+                platform.CFrame = CFrame.new(targetPos)
+            end
+        end)
+        toggleXRay(true)
+    else
+        if followConn then
+            followConn:Disconnect()
+            followConn = nil
+        end
+        if platform then
+            platform:Destroy()
+            platform = nil
+        end
+        toggleXRay(false)
+    end
+end
+player.CharacterAdded:Connect(function(char)
+    stealFloorHRP = char:WaitForChild('HumanoidRootPart')
+end)
+-- Fly to Best logic
+local flyToBestActive = false
+local linearVelocity = nil
+local angularVelocity = nil
+local mainConnection = nil
+local touchConnection = nil
+local STOP_PART_NAME = 'StopZone'
+local FLY_SPEED = 50
+local function getBestBrainrot()
+    if not Workspace:FindFirstChild('Plots') then
+        return nil
+    end
+    local bestValue = 0
+    local bestPosition = nil
+    for _, plot in pairs(Workspace.Plots:GetChildren()) do
+        for _, obj in pairs(plot:GetDescendants()) do
+            if obj:IsA('TextLabel') and obj.Text then
+                local text = obj.Text
+                if text:find('/s') then
+                    local numberText =
+                        text:gsub('%$', ''):gsub(',', ''):gsub('/s', '')
+                    local numberStr = numberText:match('(%d+%.?%d*)')
+                    local suffix = numberText:match('[KM]') or ''
+                    local value = tonumber(numberStr) or 0
+                    if suffix == 'K' then
+                        value = value * 1000
+                    elseif suffix == 'M' then
+                        value = value * 1e6
+                    end
+                    if value > bestValue then
+                        bestValue = value
+                        local model = obj:FindFirstAncestorOfClass('Model')
+                        if model then
+                            local part = model.PrimaryPart
+                                or model:FindFirstChildWhichIsA('BasePart')
+                            if part then
+                                bestPosition = part.Position
+                                    + Vector3.new(0, 3, 0)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return bestPosition
+end
+local function startFlying(character)
+    if not character then
+        return
+    end
+    local humanoid = character:FindFirstChildOfClass('Humanoid')
+    local rootPart = character:FindFirstChild('HumanoidRootPart')
+    if not humanoid or not rootPart then
+        return
+    end
+    local attachment = Instance.new('Attachment', rootPart)
+    attachment.Name = 'FlyAttachment'
+    linearVelocity = Instance.new('LinearVelocity', rootPart)
+    linearVelocity.Attachment0 = attachment
+    linearVelocity.MaxForce = 200000
+    linearVelocity.Enabled = true
+    angularVelocity = Instance.new('AngularVelocity', rootPart)
+    angularVelocity.Attachment0 = attachment
+    angularVelocity.MaxTorque = 200000
+    angularVelocity.AngularVelocity = Vector3.new(0, 0, 0)
+    angularVelocity.RelativeTo = Enum.ActuatorRelativeTo.World
+    angularVelocity.Enabled = true
+    humanoid.PlatformStand = true
+end
+local function stopFlying(character)
+    if character then
+        local humanoid = character:FindFirstChildOfClass('Humanoid')
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+        if linearVelocity then
+            linearVelocity:Destroy()
+            linearVelocity = nil
+        end
+        if angularVelocity then
+            angularVelocity:Destroy()
+            angularVelocity = nil
+        end
+        local rootPart = character:FindFirstChild('HumanoidRootPart')
+        if rootPart then
+            local attachment = rootPart:FindFirstChild('FlyAttachment')
+            if attachment then
+                attachment:Destroy()
+            end
+        end
+    end
+end
+local function flyToPosition(targetPosition)
+    local character = player.Character
+    if not character then
+        return true
+    end
+    local rootPart = character:FindFirstChild('HumanoidRootPart')
+    if not rootPart or not targetPosition then
+        return true
+    end
+    local currentPos = rootPart.Position
+    local direction = (targetPosition - currentPos)
+    local distance = direction.Magnitude
+    if distance < 10 then
+        return true
+    end
+    if not linearVelocity then
+        startFlying(character)
+    end
+    direction = direction.Unit
+    local velocity = direction * FLY_SPEED
+    local heightDiff = (targetPosition.Y - currentPos.Y)
+    local verticalForce = math.clamp(heightDiff * 3, -50, 50)
+    velocity = velocity + Vector3.new(0, verticalForce, 0)
+    if linearVelocity then
+        linearVelocity.VectorVelocity = velocity
+    end
+    local humanoid = character:FindFirstChildOfClass('Humanoid')
+    if humanoid then
+        humanoid:MoveTo(targetPosition)
+    end
+    return false
+end
+local function useGrapple()
+    local character = player.Character
+    if character then
+        local backpack = player:FindFirstChild('Backpack')
+        if backpack then
+            local grapple = backpack:FindFirstChild('Grapple Hook')
+            if grapple and not character:FindFirstChild('Grapple Hook') then
+                grapple.Parent = character
+            end
+        end
+        local remote = ReplicatedStorage:WaitForChild('Packages')
+            :WaitForChild('Net')
+            :WaitForChild('RE/UseItem')
+        local args = { 0 }
+        remote:FireServer(unpack(args))
+    end
+end
+local function toggleFlyToBest(state)
+    flyToBestActive = state
+    if mainConnection then
+        mainConnection:Disconnect()
+        mainConnection = nil
+    end
+    if touchConnection then
+        touchConnection:Disconnect()
+        touchConnection = nil
+    end
+    local char = player.Character
+    if char then
+        local humanoid = char:FindFirstChildOfClass('Humanoid')
+        local rootPart = char:FindFirstChild('HumanoidRootPart')
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+        if linearVelocity then
+            linearVelocity:Destroy()
+            linearVelocity = nil
+        end
+        if angularVelocity then
+            angularVelocity:Destroy()
+            angularVelocity = nil
+        end
+        if rootPart then
+            local attachment = rootPart:FindFirstChild('FlyAttachment')
+            if attachment then
+                attachment:Destroy()
+            end
+        end
+    end
+    if state then
+        local char = player.Character or player.CharacterAdded:Wait()
+        local function setupTouchStop(char)
+            if touchConnection then
+                touchConnection:Disconnect()
+            end
+            local rootPart = char:FindFirstChild('HumanoidRootPart')
+            if not rootPart then
+                return
+            end
+            local stopPart = Workspace:FindFirstChild(STOP_PART_NAME)
+            if not stopPart then
+                warn('STOP PART NOT FOUND: ' .. STOP_PART_NAME)
+                return
+            end
+            touchConnection = rootPart.Touched:Connect(function(hit)
+                if hit == stopPart or hit:IsDescendantOf(stopPart) then
+                    if flyToBestActive then
+                        print('TOUCHED STOP PART â SYSTEM STOPPED')
+                        flyToBestActive = false
+                    end
+                end
+            end)
+        end
+        setupTouchStop(char)
+        player.CharacterAdded:Connect(setupTouchStop)
+        mainConnection = RunService.Heartbeat:Connect(function()
+            local char = player.Character
+            if char and flyToBestActive then
+                local targetPosition = getBestBrainrot()
+                if targetPosition then
+                    local reached = flyToPosition(targetPosition)
+                    if reached then
+                        stopFlying(char)
+                        task.wait(1)
+                    else
+                        useGrapple()
+                    end
+                else
+                    stopFlying(char)
+                end
+            end
+        end)
+        player.CharacterAdded:Connect(function(newChar)
+            task.wait(2)
+            if flyToBestActive then
+                print('Respawned â Restarting system...')
+                if mainConnection then
+                    mainConnection:Disconnect()
+                    mainConnection = nil
+                end
+                if touchConnection then
+                    touchConnection:Disconnect()
+                    touchConnection = nil
+                end
+                stopFlying(newChar)
+                task.wait(1)
+                setupTouchStop(newChar)
+                mainConnection = RunService.Heartbeat:Connect(function()
+                    local char = player.Character
+                    if char and flyToBestActive then
+                        local targetPosition = getBestBrainrot()
+                        if targetPosition then
+                            local reached = flyToPosition(targetPosition)
+                            if reached then
+                                stopFlying(char)
+                                task.wait(1)
+                            else
+                                useGrapple()
+                            end
+                        else
+                            stopFlying(char)
+                        end
+                    end
+                end)
+            end
+        end)
+    end
+end
+-- Misc implementations
+-- Ultra Speed
+local ultraSpeedGrappleConn = nil
+local ultraSpeedBoostConn = nil
+local function toggleUltraSpeed(state)
+    if ultraSpeedGrappleConn then
+        ultraSpeedGrappleConn:Disconnect()
+        ultraSpeedGrappleConn = nil
+    end
+    if ultraSpeedBoostConn then
+        ultraSpeedBoostConn:Disconnect()
+        ultraSpeedBoostConn = nil
+    end
+    if state then
+        local UseItemEvent = ReplicatedStorage:WaitForChild('Packages')
+            :WaitForChild('Net')
+            :WaitForChild('RE/UseItem')
+        local function keepGrappleHook()
+            local char = player.Character
+            if not char then
+                return
+            end
+            local humanoid = char:FindFirstChildOfClass('Humanoid')
+            local item = player.Backpack:FindFirstChild('Grapple Hook')
+                or char:FindFirstChild('Grapple Hook')
+            if not item then
+                return
+            end
+            if item.Parent ~= char then
+                humanoid:EquipTool(item)
+            end
+            if item.Parent == char then
+                UseItemEvent:FireServer(0)
+            end
+        end
+        ultraSpeedGrappleConn =
+            RunService.RenderStepped:Connect(keepGrappleHook)
+        local speedValue = 120
+        ultraSpeedBoostConn = RunService.RenderStepped:Connect(function()
+            local char = player.Character
+            local humanoid = char and char:FindFirstChildOfClass('Humanoid')
+            local hrp = char and char:FindFirstChild('HumanoidRootPart')
+            if humanoid and hrp and humanoid.MoveDirection.Magnitude > 0 then
+                hrp.AssemblyLinearVelocity = humanoid.MoveDirection.Unit
+                        * speedValue
+                    + Vector3.new(0, hrp.AssemblyLinearVelocity.Y, 0)
+            end
+        end)
+        player.CharacterAdded:Connect(function(newChar)
+            local char = newChar
+        end)
+    end
+end
+-- Rejoin
+local function toggleRejoin(state)
+    if state then
+        local Success, ErrorMessage = pcall(function()
+            TeleportService:Teleport(game.PlaceId, player)
+        end)
+        if ErrorMessage and not Success then
+            warn(ErrorMessage)
+        end
+    end
+end
+-- Server Hop
+local function toggleServerHop(state)
+    if state then
+        pcall(function()
+            TeleportService:Teleport(game.PlaceId, player)
+        end)
+    end
+end
+-- Auto Fish
+local autoFishCastConn = nil
+local autoFishClickConn = nil
+local function toggleAutoFish(state)
+    if autoFishCastConn then autoFishCastConn:Disconnect() autoFishCastConn = nil end
+    if autoFishClickConn then autoFishClickConn:Disconnect() autoFishClickConn = nil end
+
+    if not state then return end
+
+    local CastRemote = ReplicatedStorage:WaitForChild('Packages'):WaitForChild('Net'):FindFirstChild('RE/FishingRod.Cast')
+    local ClickRemote = ReplicatedStorage:WaitForChild('Packages'):WaitForChild('Net'):FindFirstChild('RE/FishingRod.MinigameClick')
+    if not CastRemote or not ClickRemote then return end
+
+    local CAST_DELAY = 7
+    local CLICK_DELAY = 0.1
+    local CLICK_COUNT = 60
+
+    local function equipRod()
+        local char = player.Character
+        if not char then return end
+        local backpack = player:FindFirstChild('Backpack')
+        if not backpack then return end
+        local rod = backpack:FindFirstChild('Fishing Rod') or char:FindFirstChild('Fishing Rod')
+        if rod and rod.Parent ~= char then
+            rod.Parent = char
+        end
+    end
+
+    equipRod()
+    player.CharacterAdded:Connect(function(c)
+        task.wait(1)
+        if ToggleStates['Auto Fish'] then equipRod() end
+    end)
+
+    autoFishCastConn = RunService.Heartbeat:Connect(function()
+        if not player.Character then return end
+        CastRemote:FireServer(0)
+        task.wait(CAST_DELAY)
+
+        for i = 1, CLICK_COUNT do
+            ClickRemote:FireServer()
+            task.wait(CLICK_DELAY)
+        end
+        task.wait(2)
+    end)
+end
+
+local desyncSequence = {}
+local desyncBox = nil
+local isDesyncRunning = false
+
+local function runDesyncSequence()
+    desyncSequence.isStopped = false
+    desyncSequence.teleportIndices = {2, 4}
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+
+    desyncSequence.randomTp = function()
+        local max = 20
+        hrp.CFrame = hrp.CFrame * CFrame.new(math.random(-max, max), 0, math.random(-max, max))
+    end
+
+    desyncSequence.sequence = {
+        {flag = "WorldStepsOffsetAdjustRate", value = "-1", delay = 0},
+        {flag = "WorldStepsOffsetAdjustRate", value = "60", delay = 12.57},
+        {flag = "WorldStepsOffsetAdjustRate", value = "-9999999999", delay = 52.14},
+        {flag = "WorldStepsOffsetAdjustRate", value = "-9999999999", delay = 66.15},
+        {flag = "WorldStepsOffsetAdjustRate", value = "-1", delay = 1447.19},
+    }
+
+    task.spawn(function()
+        for i, entry in ipairs(desyncSequence.sequence) do
+            if desyncSequence.isStopped then break end
+            if entry.delay > 0 then task.wait(entry.delay / 1000) end
+            if desyncSequence.isStopped then break end
+            setfflag(entry.flag, entry.value)
+            if table.find(desyncSequence.teleportIndices, i) then
+                desyncSequence.randomTp()
+            end
+        end
+    end)
+end
+
+local function createDesyncBox()
+    if desyncBox then desyncBox:Destroy() end
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    desyncBox = Instance.new("Part")
+    desyncBox.Name = "DesyncBox"
+    desyncBox.Size = Vector3.new(5, 5, 5)
+    desyncBox.CFrame = hrp.CFrame
+    desyncBox.Anchored = true
+    desyncBox.CanCollide = false
+    desyncBox.Transparency = 0.7
+    desyncBox.Color = Color3.fromRGB(0, 170, 255)
+    desyncBox.Material = Enum.Material.ForceField
+    desyncBox.Parent = workspace
+    local selection = Instance.new("SelectionBox")
+    selection.Adornee = desyncBox
+    selection.LineThickness = 0.1
+    selection.Color3 = Color3.fromRGB(0, 170, 255)
+    selection.Transparency = 0
+    selection.Parent = desyncBox
+end
+
+local function resetCharacter()
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.Health = 0
+    end
+    setfflag("WorldStepsOffsetAdjustRate", "60")
+end
+
+local function toggleDesync(state)
+    if state then
+        isDesyncRunning = true
+        createDesyncBox()
+        runDesyncSequence()
+    else
+        isDesyncRunning = false
+        desyncSequence.isStopped = true
+        if desyncBox then desyncBox:Destroy() desyncBox = nil end
+        resetCharacter()
+    end
+end
+
+-- Tabs content
+local lists = {
+    Main = {
+        'Desync',
+        'Auto Fish',
+        'Invisible',
+        'Fly to Best',
+        'Steal Floor',
+        'Inf Jump',
+        'Slow Falling',
+        'Aimbot',
+        'Auto Destroy Sentry',
+        'Speed Boost Steal'
+    },
+    ESP = { 'ESP Player', 'ESP Base Timer', 'ESP Best Brainrot', 'X-Ray Base' },
+    Misc = {
+        'Jump Boost',
+        'Ultra Speed',
+        'Rejoin',
+        'Server Hop',
+    },
+}
+local function populateTab(tab)
+    for _, v in ipairs(scroll:GetChildren()) do
+        if not v:IsA('UIListLayout') and not v:IsA('UIPadding') then
+            v:Destroy()
+        end
+    end
+    if tab == 'Credits' then
+        -- Credits content
+        local creditsText = Instance.new('TextLabel')
+        creditsText.Parent = scroll
+        creditsText.Size = UDim2.new(0.95, 0, 0, 120)
+        creditsText.BackgroundTransparency = 1
+        creditsText.Text =
+            'Made By 0bz6\nBig thanks to: Fizzler hehe\n\nVersion: 1.0\n\nJoin our Discord for updates!'
+        creditsText.Font = Enum.Font.GothamBold
+        creditsText.TextSize = 16
+        creditsText.TextColor3 = COLOR_TEXT
+        creditsText.TextWrapped = true
+        creditsText.TextXAlignment = Enum.TextXAlignment.Left
+        local discordButton = Instance.new('TextButton')
+        discordButton.Parent = scroll
+        discordButton.Size = UDim2.new(0.95, 0, 0, 40)
+        discordButton.BackgroundColor3 = COLOR_PANEL_BG
+        discordButton.Text = 'Join Discord'
+        discordButton.Font = Enum.Font.GothamBold
+        discordButton.TextSize = 18
+        discordButton.TextColor3 = COLOR_TAB_ACTIVE
+        local btnCorner = Instance.new('UICorner')
+        btnCorner.CornerRadius = UDim.new(0, 10)
+        btnCorner.Parent= discordButton
+        discordButton.MouseButton1Click:Connect(function()
+            -- Replace with your Discord invite link
+            local link = 'https://discord.gg/8yzzSEUwkm'
+            setclipboard(link) -- Copies to clipboard (requires executor support)
+            print('Discord link copied to clipboard: ' .. link)
+            local copiedLabel = Instance.new('TextLabel')
+            copiedLabel.Parent = scroll
+            copiedLabel.Size = UDim2.new(0.95, 0, 0, 30)
+            copiedLabel.BackgroundTransparency = 1
+            copiedLabel.Text = 'Discord link copied to clipboard'
+            copiedLabel.Font = Enum.Font.GothamBold
+            copiedLabel.TextSize = 13
+            copiedLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+            copiedLabel.TextXAlignment = Enum.TextXAlignment.Center
+            task.delay(3, function()
+                copiedLabel:Destroy()
+            end)
+        end)
+        return
+    end
+    for _, n in ipairs(lists[tab] or {}) do
+        local callback
+        if n == 'ESP Player' then
+            callback = togglePlayerESP
+        elseif n == 'ESP Base Timer' then
+            callback = toggleBaseTimerESP
+        elseif n == 'ESP Best Brainrot' then
+            callback = toggleBestBrainrotESP
+        elseif n == 'X-Ray Base' then
+            callback = toggleXRay
+        elseif n == 'Inf Jump' then
+            callback = toggleInfJump
+        elseif n == 'Slow Falling' then
+            callback = toggleSlowFalling
+        elseif n == 'Aimbot' then
+            callback = toggleAimbot
+        elseif n == 'Auto Destroy Sentry' then
+            callback = toggleAutoDestroySentry
+        elseif n == 'Speed Boost Steal' then
+            callback = toggleSpeedBoostSteal
+        elseif n == 'Jump Boost' then
+            callback = toggleJumpBoost
+        elseif n == 'Invisible' then
+            callback = toggleInvisible
+        elseif n == 'Steal Floor' then
+            callback = toggleStealFloor
+        elseif n == 'Fly to Best' then
+            callback = toggleFlyToBest
+        elseif n == 'Ultra Speed' then
+            callback = toggleUltraSpeed
+        elseif n == 'Rejoin' then
+            callback = toggleRejoin
+        elseif n == 'Server Hop' then
+            callback = toggleServerHop
+        elseif n == 'Auto Fish' then
+            callback = toggleAutoFish
+        elseif n == 'Desync' then
+            callback = toggleDesync
+        else
+            callback = function(state)
+                print(n, 'toggled:', state)
+            end
+        end
+        local t = createToggle(n, callback)
+        t.Parent = scroll
+    end
+end
+local function setTab(tab)
+    for _, n in ipairs(tabNames) do
+        local b = tabButtons[n]
+        local active = (n == tab)
+        b.TextColor3 = active and COLOR_TAB_ACTIVE or COLOR_TAB_INACTIVE
+        local s = b:FindFirstChildOfClass('UIStroke')
+        if s then
+            s.Color = active and COLOR_TAB_ACTIVE or COLOR_TAB_INACTIVE
+        end
+    end
+    pageTitle.Text = tab
+    populateTab(tab)
+end
+for _, name in ipairs(tabNames) do
+    tabButtons[name].MouseButton1Click:Connect(function()
+        setTab(name)
+    end)
+end
+setTab('Main')
